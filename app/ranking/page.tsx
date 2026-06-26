@@ -12,30 +12,50 @@ export default async function RankingPage() {
           (entries.reduce((s, e) => s + e.streak, 0) / entries.length) * 10
         ) / 10
       : 0;
-  const maxStreak = entries.reduce((m, e) => Math.max(m, e.streak), 0);
 
   return (
-    <div className="mx-auto bg-white" style={{ width: 560 }}>
-      <div className="bg-gradient-to-br from-sky-500 via-sky-400 to-sky-300 px-5 pb-10 pt-7 text-center text-white">
-        <div className="text-[22px] font-extrabold tracking-wide drop-shadow-md">
-          ☀️ 今週の朝活ランキング
+    <div
+      className="mx-auto bg-[#f5f6fa] font-sans"
+      style={{ width: 560, color: "#1a1d2e" }}
+    >
+      {/* ヘッダー：背景画像 + グラデーションオーバーレイ */}
+      <div
+        className="px-5 pb-10 pt-7 text-center"
+        style={{
+          backgroundImage:
+            "linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 60%, rgba(245,246,250,1) 100%), url('/assets/header_bg.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center 40%",
+        }}
+      >
+        <div
+          className="text-[22px] font-extrabold tracking-wide text-white"
+          style={{ textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}
+        >
+          今週の朝活ランキング
         </div>
-        <div className="mt-1 text-[13px] text-white/90">{period || "今週はこれから"}</div>
-        <div className="mt-1 text-[11px] text-white/75">
-          9:00 出社までの朝活時間で集計
+        <div className="mt-1 text-[13px] text-white/90">
+          {period || "今週はこれから"}
+        </div>
+        <div className="mt-1 text-[11px] text-white/70">
+          9:00出社までの朝活時間で集計
         </div>
       </div>
 
       <div className="px-5 pb-7">
         {entries.length === 0 ? (
-          <div className="mt-5 rounded-xl bg-white p-9 text-center text-sm leading-loose text-slate-500 shadow">
+          <div className="rounded-xl bg-white p-9 text-center text-[14px] leading-loose text-[#888ea8] shadow">
             今週の朝活はこれから始まります！
             <br />
             ☀️ でチェックインしましょう
           </div>
         ) : (
           <>
-            <div className="-mt-4 mb-5 rounded-xl bg-white px-5 py-4 shadow">
+            {/* Summary bar (overlay on header) */}
+            <div
+              className="-mt-4 mb-5 rounded-xl bg-white px-5 py-4"
+              style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.09)" }}
+            >
               <div className="flex justify-around">
                 <SummaryItem
                   value={`${entries.length}`}
@@ -51,7 +71,10 @@ export default async function RankingPage() {
               </div>
             </div>
 
-            <div className="mb-2.5 pl-1 text-[13px] font-bold text-slate-600">
+            <div
+              className="mb-2.5 pl-0.5 text-[13px] font-bold"
+              style={{ color: "#444a6a" }}
+            >
               ⏱ 今週の朝活時間ランキング
             </div>
             <div className="flex flex-col gap-1.5">
@@ -65,12 +88,6 @@ export default async function RankingPage() {
                 />
               ))}
             </div>
-
-            {maxStreak >= 2 && (
-              <div className="mt-4 text-center text-[11px] text-slate-500">
-                ✨ 最長ストリーク {maxStreak}日連続
-              </div>
-            )}
           </>
         )}
       </div>
@@ -89,15 +106,20 @@ function SummaryItem({
 }) {
   return (
     <div className="text-center">
-      <div className="text-[22px] font-extrabold leading-tight text-slate-900">
+      <div className="text-[22px] font-extrabold leading-tight">
         {value}
         {unit && (
-          <span className="ml-0.5 text-sm font-semibold text-slate-500">
+          <span
+            className="ml-0.5 text-sm font-semibold"
+            style={{ color: "#888ea8" }}
+          >
             {unit}
           </span>
         )}
       </div>
-      <div className="mt-1 text-[11px] text-slate-500">{label}</div>
+      <div className="mt-1 text-[11px]" style={{ color: "#888ea8" }}>
+        {label}
+      </div>
     </div>
   );
 }
@@ -114,35 +136,65 @@ function RankingRow({
   streak: number;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-white px-4 py-2.5 shadow">
-      <div className={getRankBadgeClass(rank)}>
-        {rank <= 3 ? medalEmoji(rank) : rank}
-      </div>
-      <span className="flex-1 text-sm font-bold text-slate-900">{name}</span>
+    <div
+      className="flex items-center gap-3 rounded-lg bg-white px-4 py-2.5"
+      style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.09)" }}
+    >
+      <RankBadge rank={rank} />
+      <span className="flex-1 text-[14px] font-bold">{name}</span>
       {streak >= 2 && (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-bold text-sky-700">
-          ✨ {streak}日連続
+        <span
+          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold"
+          style={{ background: "#fff0f0", color: "#d45060" }}
+        >
+          🔥 {streak}日連続
         </span>
       )}
-      <span className="text-sm font-extrabold text-slate-900">{totalLabel}</span>
+      <span className="text-[14px] font-extrabold">{totalLabel}</span>
     </div>
   );
 }
 
-function getRankBadgeClass(rank: number): string {
-  const base =
-    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-extrabold";
-  if (rank === 1)
-    return `${base} bg-gradient-to-br from-yellow-300 to-yellow-500 text-white`;
-  if (rank === 2)
-    return `${base} bg-gradient-to-br from-slate-300 to-slate-400 text-white`;
-  if (rank === 3)
-    return `${base} bg-gradient-to-br from-orange-300 to-orange-500 text-white`;
-  return `${base} bg-slate-100 text-slate-500`;
-}
-
-function medalEmoji(rank: number): string {
-  return rank.toString();
+function RankBadge({ rank }: { rank: number }) {
+  const base = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full";
+  if (rank === 1) {
+    return (
+      <div
+        className={`${base} text-[12px] font-extrabold text-white`}
+        style={{ background: "linear-gradient(135deg, #f7c948, #e8a000)" }}
+      >
+        {rank}
+      </div>
+    );
+  }
+  if (rank === 2) {
+    return (
+      <div
+        className={`${base} text-[12px] font-extrabold text-white`}
+        style={{ background: "linear-gradient(135deg, #d0d8e8, #9aaac0)" }}
+      >
+        {rank}
+      </div>
+    );
+  }
+  if (rank === 3) {
+    return (
+      <div
+        className={`${base} text-[12px] font-extrabold text-white`}
+        style={{ background: "linear-gradient(135deg, #e8b090, #c07040)" }}
+      >
+        {rank}
+      </div>
+    );
+  }
+  return (
+    <div
+      className={`${base} text-[13px] font-bold`}
+      style={{ color: "#9098b8" }}
+    >
+      {rank}
+    </div>
+  );
 }
 
 function formatMinutes(totalMinutes: number): string {
