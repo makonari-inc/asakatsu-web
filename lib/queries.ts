@@ -1,4 +1,5 @@
-import { and, asc, eq, min, sql } from "drizzle-orm";
+import { isHoliday } from "@holiday-jp/holiday_jp";
+import { and, asc, eq, inArray, min } from "drizzle-orm";
 import { db } from "@/db";
 import { reactions } from "@/db/schema";
 
@@ -118,6 +119,114 @@ function nowJstDate(): Date {
 
 function toDateString(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * 週次ランキング用のエントリー
+ */
+export type RankingEntry = {
+  userId: string;
+  userName: string;
+  totalMinutes: number;
+  days: number;
+  streak: number;
+};
+
+/**
+ * 今週（月曜〜今日）の朝活ランキングを計算する
+ * - 各営業日について、その日の最も遅い "added" スタンプ時刻を採用
+ * - 9:00 までの分数を合計
+ * - 合計時間の降順で返す
+ */
+export async function computeWeeklyRanking(): Promise<{
+  weekDates: string[];
+  entries: RankingEntry[];
+}> {
+  const today = nowJstDate();
+  const weekDates = thisWeekBusinessDays(today);
+
+  if (weekDates.length === 0) {
+    return { weekDates: [], entries: [] };
+  }
+
+  // その期間の "added" を全部取得
+  const rows = await db
+    .select()
+    .from(reactions)
+    .where(
+      and(
+        inArray(reactions.date, weekDates),
+        eq(reactions.action, "added")
+      )
+    );
+
+  // user_id × date → latest event_at
+  const latestByUserDate = new Map<string, { userName: string; eventAt: Date }>();
+  for (const r of rows) {
+    const key = `${r.userId}|${r.date}`;
+    const existing = latestByUserDate.get(key);
+    if (!existing || r.eventAt > existing.eventAt) {
+      latestByUserDate.set(key, { userName: r.userName, eventAt: r.eventAt });
+    }
+  }
+
+  // 集計
+  const totals = new Map<
+    string,
+    { userId: string; userName: string; totalMinutes: number; days: number }
+  >();
+  for (const [key, { userName, eventAt }] of latestByUserDate) {
+    const [userId] = key.split("|");
+    const minutes = minutesBeforeNineJst(eventAt);
+    if (minutes <= 0) continue;
+    const acc = totals.get(userId) ?? {
+      userId,
+      userName,
+      totalMinutes: 0,
+      days: 0,
+    };
+    acc.userName = userName;
+    acc.totalMinutes += minutes;
+    acc.days += 1;
+    totals.set(userId, acc);
+  }
+
+  // 各ユーザーの現在のストリーク
+  const entries: RankingEntry[] = [];
+  for (const t of totals.values()) {
+    const records = await getDailyStartsForUser(t.userId);
+    const streak = computeStreak(records);
+    entries.push({ ...t, streak });
+  }
+
+  entries.sort((a, b) => b.totalMinutes - a.totalMinutes);
+
+  return { weekDates, entries };
+}
+
+function thisWeekBusinessDays(today: Date): string[] {
+  // 今週の月曜から今日まで（祝日除く）
+  const dayOfWeek = today.getUTCDay(); // 0=日, 1=月
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(today);
+  monday.setUTCDate(today.getUTCDate() - daysSinceMonday);
+
+  const dates: string[] = [];
+  const cursor = new Date(monday);
+  while (cursor <= today) {
+    const dow = cursor.getUTCDay();
+    if (dow >= 1 && dow <= 5 && !isHoliday(cursor)) {
+      dates.push(toDateString(cursor));
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+function minutesBeforeNineJst(utcDate: Date): number {
+  const jst = new Date(utcDate.getTime() + 9 * 60 * 60 * 1000);
+  const minutesOfDay = jst.getUTCHours() * 60 + jst.getUTCMinutes();
+  return Math.max(0, 9 * 60 - minutesOfDay);
 }
 
 /**
