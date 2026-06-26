@@ -44,14 +44,17 @@ export async function POST(req: NextRequest) {
       event?.type === "reaction_added" ||
       event?.type === "reaction_removed"
     ) {
-      // Slack は 3 秒以内のレスポンスを期待するので、
-      // 非同期で処理して即座に 200 を返す
-      handleReaction(
-        event,
-        event.type === "reaction_added" ? "added" : "removed"
-      ).catch((err) => {
+      // サーバーレス環境では fire-and-forget だと
+      // レスポンス送信後に関数が停止して処理が中断するため、
+      // 必ず await してから 200 を返す
+      try {
+        await handleReaction(
+          event,
+          event.type === "reaction_added" ? "added" : "removed"
+        );
+      } catch (err) {
         console.error("[slack/events] handleReaction error:", err);
-      });
+      }
     }
   }
 
