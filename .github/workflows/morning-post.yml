@@ -1,0 +1,42 @@
+name: 朝メッセを Slack に投稿
+
+on:
+  schedule:
+    # 21:30 UTC = 翌日 06:30 JST
+    # 月〜金（JST）に投稿したいので、UTC では 日〜木 を指定
+    - cron: "30 21 * * SUN,MON,TUE,WED,THU"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "祝日でも強制投稿する"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Post morning message
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          ASAKATSU_CHANNEL_ID: ${{ secrets.ASAKATSU_CHANNEL_ID }}
+          FORCE_POST: ${{ inputs.force == 'true' && '1' || '0' }}
+        run: pnpm tsx scripts/post-morning-message.ts
