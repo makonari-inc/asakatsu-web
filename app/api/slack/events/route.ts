@@ -62,21 +62,31 @@ async function handleReaction(
   event: SlackReactionEvent,
   action: "added" | "removed"
 ): Promise<void> {
-  // メッセージ以外（ファイル等）への反応は無視
-  if (event.item?.type !== "message") return;
+  console.log(
+    `[slack/events] received: action=${action} user=${event.user} reaction=${event.reaction} item_type=${event.item?.type} channel=${event.item?.channel} item_user=${event.item_user}`
+  );
 
-  // 朝活チャンネル以外は無視
+  if (event.item?.type !== "message") {
+    console.log("[slack/events] skipped: not a message item");
+    return;
+  }
+
   if (ASAKATSU_CHANNEL_ID && event.item.channel !== ASAKATSU_CHANNEL_ID) {
+    console.log(
+      `[slack/events] skipped: channel mismatch (expected ${ASAKATSU_CHANNEL_ID})`
+    );
     return;
   }
 
-  // Bot 自身が押した場合は無視
   if (ASAKATSU_BOT_USER_ID && event.user === ASAKATSU_BOT_USER_ID) {
+    console.log("[slack/events] skipped: reaction by bot itself");
     return;
   }
 
-  // Bot の投稿に対する反応のみ記録
   if (ASAKATSU_BOT_USER_ID && event.item_user !== ASAKATSU_BOT_USER_ID) {
+    console.log(
+      `[slack/events] skipped: item not from bot (item_user=${event.item_user}, expected=${ASAKATSU_BOT_USER_ID})`
+    );
     return;
   }
 
