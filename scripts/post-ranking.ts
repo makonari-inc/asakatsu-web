@@ -53,7 +53,8 @@ async function captureRankingPng(url: string, outPath: string) {
     const page = await ctx.newPage();
     await page.goto(url, { waitUntil: "networkidle" });
     // 余計な余白なしで 560px のコンテンツ部分だけを撮る
-    const content = await page.locator(".mx-auto.bg-white").first();
+    const content = page.locator("#ranking-capture");
+    await content.waitFor({ state: "visible", timeout: 15_000 });
     await content.screenshot({ path: outPath });
   } finally {
     await browser.close();

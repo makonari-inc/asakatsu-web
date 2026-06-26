@@ -15,6 +15,7 @@ export default async function RankingPage() {
 
   return (
     <div
+      id="ranking-capture"
       className="mx-auto bg-[#f5f6fa] font-sans"
       style={{ width: 560, color: "#1a1d2e" }}
     >
